@@ -57,8 +57,12 @@ class App:
 
         self.btn_mark_attendance = Button(self.root, text="MARK ATTENDANCE", font=("Arial", 15, "bold"), bg='#B28DFF', borderwidth=0, fg='white', command=self.mark_attendance)
         self.btn_mark_attendance.place(x=912, y=404)
-        
-        self.file_name, self.start_time, self.end_time = name_attendance_file()
+
+        try:
+            self.file_name, self.start_time, self.end_time = name_attendance_file()
+        except:
+            self.root.destroy()
+            quit()
         self.capture_video()
 
     def mark_attendance(self):
@@ -73,7 +77,11 @@ class App:
         '''
         self.stop_display_video.set()
         self.process_thread.join()
-        self.file_name, self.start_time, self.end_time = name_attendance_file()
+        try:
+            self.file_name, self.start_time, self.end_time = name_attendance_file()
+        except:
+            self.root.destroy()
+            quit()
         self.stop_display_video.clear()
         self.capture_video()
 
@@ -131,6 +139,7 @@ class App:
             if type(img) == NoneType:
                 messagebox.showerror("Error", "Not found camera in this device!")
                 self.root.destroy()
+                quit()
             if success:
                 self.name, processed_img = cur_img_process(img)  
                 with self.lock:

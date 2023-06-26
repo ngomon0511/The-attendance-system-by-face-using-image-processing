@@ -81,7 +81,7 @@ def set_time_attendance():
         if not interval_time:
             answer = messagebox.askyesno('Confirm', 'Are you sure you want to quit the program?')
             if answer:
-                quit()
+                return False
             else:
                 continue
         try:
@@ -101,7 +101,10 @@ def name_attendance_file():
     now = datetime.now()
     date_attendance = now.strftime('%Y-%m-%d')
     while True:
-        start_time, end_time = set_time_attendance()
+        try:
+            start_time, end_time = set_time_attendance()
+        except:
+            return False
         if start_time <= now.time() <= end_time:
             break
         else:
@@ -356,8 +359,8 @@ def cur_img_process(img):
         name (str): The name of the person in attendance. If the face is not recognized, the name is empty.
         img (numpy.ndarray): The input image with rectangles and text displaying the person's name and accuracy.
     '''
-    name = ''
-    text = ''
+    name = '' # name not in encode database
+    text = 'Unknown' # face not found in the database
     person_names_known, encodes_known, main_encodes_known = read_encode_db()
     imgS = crop_center_image(img) 
     imgS = cv2.resize(img, (0,0), None, 0.25, 0.25)  # resize the image for faster processing
@@ -370,27 +373,26 @@ def cur_img_process(img):
         # Identify the position of the current face
         face_loc = face_locations[0]  
         
-        # Extract face encodings for the current face using the HOG algorithm
-        encode_face = face_recognition.face_encodings(imgS, model="hog")[0] 
-        
-        # Calculate face distance between current face and faces in the database
-        face_dis = face_recognition.face_distance(main_encodes_known, encode_face)  
-        
-        # Identify the index of the face in the database that is most similar to the current face
-        true_index = np.argmin(face_dis)  
-        
-        # Calculate face distance between current face and faces in 8 brightness levels
-        face_dis = face_recognition.face_distance(encodes_known[true_index], encode_face)
+        if len(person_names_known) != 0:
+            # Extract face encodings for the current face using the HOG algorithm
+            encode_face = face_recognition.face_encodings(imgS, model="hog")[0] 
+            
+            # Calculate face distance between current face and faces in the database
+            face_dis = face_recognition.face_distance(main_encodes_known, encode_face)  
+            
+            # Identify the index of the face in the database that is most similar to the current face
+            true_index = np.argmin(face_dis)  
+            
+            # Calculate face distance between current face and faces in 8 brightness levels
+            face_dis = face_recognition.face_distance(encodes_known[true_index], encode_face)
 
-        # Identify the name of person in attendance and the accuracy
-        err = np.min(face_dis)
-        acc = round(100 * (1 - err))    
-        if acc > 50:  # face found in the database
-            name = person_names_known[true_index]
-            text = f"{name} {acc}%"  
-        else:         # face not found in the database
-            text = 'Unknown' 
-        
+            # Identify the name of person in attendance and the accuracy
+            err = np.min(face_dis)
+            acc = round(100 * (1 - err))    
+            if acc > 50:  # face found in the database
+                name = person_names_known[true_index]
+                text = f"{name} {acc}%"  
+            
         # Display the participant's name and accuracy above the rectangle that covers the face
         y1, x2, y2, x1 = face_loc
         y1, x2, y2, x1 = y1 * 4, x2 * 4, y2 * 4, x1 * 4         
